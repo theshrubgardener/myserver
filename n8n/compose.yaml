@@ -1,0 +1,60 @@
+name: backup-n8n
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: backup-n8n
+    restart: always
+    ports:
+      - "192.168.0.114:5450:5678"
+      - "127.0.0.1:5450:5678"
+    environment:
+      # database
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: backup-shared-postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_USER: n8n_user
+      DB_POSTGRESDB_PASSWORD_FILE: /run/secrets/n8n_db_password
+      
+      #Encryption key
+      N8N_ENCRYPTION_KEY_FILE: /run/secrets/n8n_encryption_key
+      
+      #webhook info
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: true
+      N8N_HOST: 0.0.0.0
+      N8N_PORT: 5678
+      N8N_PROTOCOL: https
+      WEBHOOK_URL: https://n8n.tift.pro/
+
+      GENERIC_TIMEZONE: America/Denver
+      N8N_LOG_LEVEL: info
+    
+    secrets:
+      - n8n_db_password
+      - n8n_encryption_key
+
+    volumes:
+      - backup_n8n_data:/home/node/.n8n
+      - ./local-files:/files:rw
+
+    networks:
+      - backup-shared-db-net
+      - ai-bridge
+
+secrets:
+  n8n_db_password:
+    file: ./secrets/postgres-n8n-password.txt
+  n8n_encryption_key:
+    file: ./secrets/n8n-encryption-key.txt
+
+volumes:
+  backup_n8n_data:
+    name: backup-n8n
+
+networks:
+  backup-shared-db-net:
+    external: true
+    name: backup-shared-db-net
+  ai-bridge:
+    external: true
+    name: ai-bridge
